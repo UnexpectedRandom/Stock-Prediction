@@ -1,8 +1,9 @@
 import torch
 import matplotlib.pyplot as plt
 import pandas as pd
-from torch import nn
+import numpy as np
 
+from torch import nn
 torch.manual_seed(42)
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -25,7 +26,6 @@ X_train = X_train.unsqueeze(1)
 y_train = y_train.unsqueeze(1)
 X_test = X_test.unsqueeze(1)
 y_test = y_test.unsqueeze(1)
-
 
 # Define the simpler neural network model
 class SimpleHighsAlgorithm(nn.Module):
@@ -74,16 +74,12 @@ with torch.no_grad():
     test_loss = criterion(test_outputs, y_test)
     print(f'Test Loss: {test_loss.item():.4f}')
 
-
-tensor_data = tensor_data.unsqueeze(1)
-
 # Move tensor_data to the appropriate device
 tensor_data = tensor_data.to(device)
 
-
 # Make predictions using the trained model
 with torch.no_grad():
-    predictions = simple_model(tensor_data)
+    predictions = simple_model(tensor_data.unsqueeze(1))
 
 # Convert predictions tensor to numpy array
 predictions = predictions.cpu().numpy()
@@ -97,9 +93,29 @@ plt.plot(range(len(tensor_data_np)), tensor_data_np, label='Original Data', colo
 # Plot predictions as orange dots
 plt.scatter(range(len(predictions)), predictions, label='Predictions', color='orange')
 
+# Predict the next high value
 plt.xlabel('Data Point Index')
 plt.ylabel('High Value')
-plt.title('Original Data vs. Predictions')
+plt.title('Comparing The AI Prediction To The Sctual Data')
 plt.legend()
 plt.show()
 
+# Predict the next 10 high values
+window_size = 10
+
+with torch.no_grad():
+    future_predictions = []
+    last_window = X_train[-window_size:].unsqueeze(0)
+    for _ in range(10):
+        # Use the existing model to make predictions
+        future_pred = simple_model(last_window[:, -1].unsqueeze(1))  # Predict using the last element of the window
+        future_predictions.append(future_pred.cpu().numpy()[0][0])
+        last_window = torch.cat([last_window[:, 1:], future_pred], dim=1)
+
+# Convert predictions to numpy array
+future_predictions = np.array(future_predictions)
+
+i=1
+for _ in range(len(future_predictions)):
+    print(f'Day {i}: {str(future_predictions[_])}')
+    i+=1
